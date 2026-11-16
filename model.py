@@ -566,3 +566,89 @@ def ncm_log_proba(X, means, W):
     # numerically stable log-sum-exp implementation.
     return log_normalize(log_scores)
 
+# Step 10 - fit_ncm_metric
+def fit_ncm_metric(X, y, means, K, n_iter=100, lr=0.1, seed=0):
+    """
+    Learn the metric matrix W for a Nearest-Class-Mean classifier
+    using gradient descent on the negative log-likelihood.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Training observations.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    means : ndarray, shape (C, D)
+        Fixed class mean vectors.
+    K : int
+        Dimensionality of the learned projection space.
+    n_iter : int, default=100
+        Number of gradient descent iterations.
+    lr : float, default=0.1
+        Learning rate.
+    seed : int, default=0
+        Random seed for reproducible initialization.
+
+    Returns
+    -------
+    W : ndarray, shape (K, D)
+        Learned metric projection matrix.
+    losses : ndarray, shape (n_iter,)
+        Negative log-likelihood recorded before each update.
+    """
+
+    # Determine the number of observations and input features.
+    N, D = X.shape
+
+    # Determine the number of classes.
+    C = means.shape[0]
+
+    # Initialize the random number generator for reproducibility.
+    rng = np.random.default_rng(seed)
+
+    # Initialize W as a rectangular identity matrix with small random noise.
+    W = np.eye(K, D) + 0.01 * rng.standard_normal((K, D))
+
+    # Store the negative log-likelihood at every iteration.
+    losses = np.zeros(n_iter, dtype=float)
+
+    # Create the one-hot encoded representation of class labels.
+    onehot = np.zeros((N, C), dtype=float)
+    onehot[np.arange(N), y] = 1.0
+
+    # Perform gradient descent for the specified number of iterations.
+    for i in range(n_iter):
+
+        # Compute normalized log-posterior probabilities.
+        logp = ncm_log_proba(X, means, W)
+
+        # Record the negative log-likelihood before updating W.
+        losses[i] = -np.mean(logp[np.arange(N), y])
+
+        # Calculate the prediction error for each observation and class.
+        # g has shape (N, C).
+        # Dividing by N gives the gradient of the mean loss.
+        g = (np.exp(logp) - onehot) / N
+
+        # Initialize the accumulated covariance-like gradient matrix.
+        G = np.zeros((D, D), dtype=float)
+
+        # Accumulate the weighted outer products for every class.
+        for c in range(C):
+
+            # Compute differences between observations and class c's mean.
+            # Shape: (N, D).
+            R_c = X - means[c]
+
+            # Accumulate:
+            # G += sum_n g[n, c] * R_c[n] @ R_c[n].T
+            G += R_c.T @ (R_c * g[:, c:c+1])
+
+        # Apply the gradient descent update.
+        # Since dL/dW = -W @ G, subtracting the gradient
+        # is equivalent to adding the term below.
+        W = W + lr * (W @ G)
+
+    # Return the learned metric and the recorded loss history.
+    return W, losses
+
