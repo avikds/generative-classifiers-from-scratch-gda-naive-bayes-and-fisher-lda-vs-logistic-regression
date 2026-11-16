@@ -1073,3 +1073,58 @@ def fit_categorical_nb(Xk, y, C, K, alpha=1.0, beta=1.0):
         "log_pi": log_pi
     }
 
+# Step 18 - nb_log_joint
+def nb_log_joint(params, Xk):
+    """
+    Compute the Naive Bayes log-joint probabilities for every
+    observation and class.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted categorical Naive Bayes parameters containing:
+        - 'log_pi': Log class prior probabilities, shape (C,).
+        - 'log_theta': Log conditional probabilities, shape (C, D, K).
+
+    Xk : ndarray, shape (N, D)
+        Integer categorical features ranging from 0 to K-1.
+        A value of -1 represents a missing feature.
+
+    Returns
+    -------
+    log_joint : ndarray, shape (N, C)
+        Unnormalized log-joint probabilities for each observation
+        and class.
+    """
+
+    # Extract the fitted log probabilities.
+    log_pi = params["log_pi"]
+    log_theta = params["log_theta"]
+
+    # Determine the number of observations and classes.
+    N, D = Xk.shape
+    C = log_pi.shape[0]
+
+    # Initialize every observation's log-joint score
+    # with the corresponding class log prior.
+    log_joint = np.broadcast_to(
+        log_pi,
+        (N, C)
+    ).copy()
+
+    # Determine the number of categorical feature levels.
+    K = log_theta.shape[2]
+
+    # Accumulate the conditional log probabilities for each level.
+    for k in range(K):
+
+        # Identify observations whose feature values equal k.
+        # Missing values (-1) do not match any valid level.
+        feature_mask = (Xk == k).astype(float)
+
+        # Add the conditional log probabilities for level k.
+        # Matrix multiplication produces an (N, C) contribution.
+        log_joint += feature_mask @ log_theta[:, :, k].T
+
+    return log_joint
+
