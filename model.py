@@ -453,3 +453,73 @@ def lda_softmax_params(params):
 
     return B, gamma
 
+# Step 8 - lda_binary_threshold
+def lda_binary_threshold(params):
+    """
+    Convert a binary tied-covariance GDA model into a logistic
+    regression representation with a prior-adjusted threshold.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted GDA parameters containing:
+        - 'pi': Class prior probabilities, shape (2,).
+        - 'mu': Class mean vectors, shape (2, D).
+        - 'Sigma': Class covariance matrices, shape (2, D, D).
+
+    Returns
+    -------
+    w : ndarray, shape (D,)
+        Direction vector of the binary LDA decision boundary.
+
+    x0 : ndarray, shape (D,)
+        Prior-adjusted threshold vector.
+
+    Raises
+    ------
+    ValueError
+        If the model does not contain exactly two classes
+        or if the class covariance matrices are not tied.
+    """
+
+    # Extract the class priors, means, and covariance matrices.
+    pi = np.asarray(params["pi"], dtype=float)
+    mu = np.asarray(params["mu"], dtype=float)
+    Sigma = np.asarray(params["Sigma"], dtype=float)
+
+    # Verify that the model contains exactly two classes.
+    if len(pi) != 2 or mu.shape[0] != 2 or Sigma.shape[0] != 2:
+        raise ValueError("LDA binary threshold requires exactly two classes.")
+
+    # Verify that both classes share the same covariance matrix.
+    if not np.allclose(Sigma[0], Sigma[1]):
+        raise ValueError("Class covariance matrices must be tied.")
+
+    # Extract the shared covariance matrix.
+    shared_Sigma = Sigma[0]
+
+    # Calculate the difference between the two class mean vectors.
+    delta_mu = mu[1] - mu[0]
+
+    # Calculate the direction vector:
+    # w = Sigma^(-1) @ (mu_1 - mu_0)
+    # Use a linear system solver instead of explicitly computing the inverse.
+    w = np.linalg.solve(shared_Sigma, delta_mu)
+
+    # Calculate the squared Mahalanobis distance between class means.
+    mahalanobis_sq = delta_mu @ w
+
+    # Calculate the midpoint between the two class mean vectors.
+    midpoint = 0.5 * (mu[0] + mu[1])
+
+    # Calculate the logarithm of the class prior ratio.
+    log_prior_ratio = np.log(pi[1] / pi[0])
+
+    # Apply the prior-adjusted threshold:
+    # x0 = midpoint - delta_mu * log(pi_1 / pi_0) / mahalanobis_sq
+    x0 = midpoint - (
+        delta_mu * log_prior_ratio / mahalanobis_sq
+    )
+
+    return w, x0
+

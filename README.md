@@ -17,6 +17,7 @@ python scaffold.py
 - [x] **5.** sample_gda
 - [x] **6.** constrain_covariances
 - [x] **7.** lda_softmax_params
+- [x] **8.** lda_binary_threshold
 
 ---
 
