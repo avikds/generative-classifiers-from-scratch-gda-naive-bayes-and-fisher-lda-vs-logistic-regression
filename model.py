@@ -708,3 +708,73 @@ def pca_basis(X, K):
 
     return mean, V
 
+# Step 12 - scatter_matrices
+def scatter_matrices(X, y, C):
+    """
+    Compute the within-class and between-class scatter matrices.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Input dataset containing N observations and D features.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+
+    Returns
+    -------
+    S_W : ndarray, shape (D, D)
+        Within-class scatter matrix.
+    S_B : ndarray, shape (D, D)
+        Between-class scatter matrix.
+    """
+
+    # Convert inputs to NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y)
+
+    # Determine the number of observations and features.
+    N, D = X.shape
+
+    # Calculate the overall mean of the entire dataset.
+    overall_mean = np.mean(X, axis=0)
+
+    # Initialize the within-class and between-class scatter matrices.
+    S_W = np.zeros((D, D), dtype=float)
+    S_B = np.zeros((D, D), dtype=float)
+
+    # Calculate scatter contributions for each class.
+    for c in range(C):
+
+        # Select observations belonging to the current class.
+        X_c = X[y == c]
+
+        # Count the observations in the current class.
+        N_c = X_c.shape[0]
+
+        # Skip empty classes because they contribute zero scatter.
+        if N_c == 0:
+            continue
+
+        # Calculate the mean vector of the current class.
+        mu_c = np.mean(X_c, axis=0)
+
+        # Center observations around their respective class mean.
+        centered_X = X_c - mu_c
+
+        # Accumulate the within-class scatter matrix.
+        # S_W = sum_c sum_n (x_n - mu_c)(x_n - mu_c).T
+        S_W += centered_X.T @ centered_X
+
+        # Calculate the difference between the class mean
+        # and the overall dataset mean.
+        mean_diff = mu_c - overall_mean
+
+        # Accumulate the between-class scatter matrix.
+        # S_B = sum_c N_c * (mu_c - mu)(mu_c - mu).T
+        S_B += N_c * np.outer(mean_diff, mean_diff)
+
+    # Return both scatter matrices.
+    return S_W, S_B
+

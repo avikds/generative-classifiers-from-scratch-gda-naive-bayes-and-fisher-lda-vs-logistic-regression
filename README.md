@@ -21,6 +21,7 @@ python scaffold.py
 - [x] **9.** ncm_log_proba
 - [x] **10.** fit_ncm_metric
 - [x] **11.** pca_basis
+- [x] **12.** scatter_matrices
 
 ---
 
