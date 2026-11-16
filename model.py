@@ -1412,3 +1412,100 @@ def evaluate_posteriors(log_post, y, n_bins=10):
         "ece": float(ece)
     }
 
+# Step 23 - learning_curve
+def learning_curve(fit_predict, X, y, X_test, y_test, sizes, n_repeats=3, seed=0):
+    """
+    Measure test accuracy as a function of the number of
+    training examples selected per class.
+
+    Parameters
+    ----------
+    fit_predict : callable
+        A function accepting (X_train, y_train, X_test)
+        and returning normalized log-posterior probabilities
+        of shape (N_test, C).
+
+    X : ndarray, shape (N, D)
+        Full training feature matrix.
+    y : ndarray, shape (N,)
+        Training labels ranging from 0 to C-1.
+    X_test : ndarray, shape (N_test, D)
+        Test feature matrix.
+    y_test : ndarray, shape (N_test,)
+        True test labels.
+    sizes : list or array
+        Numbers of training examples to select per class.
+    n_repeats : int, default=3
+        Number of independent sampling repetitions per size.
+    seed : int, default=0
+        Random seed for reproducible sampling.
+
+    Returns
+    -------
+    mean : ndarray, shape (len(sizes),)
+        Mean test accuracy across repetitions for each training size.
+    std : ndarray, shape (len(sizes),)
+        Population standard deviation of test accuracy across repetitions.
+    """
+
+    # Convert inputs into NumPy arrays.
+    X = np.asarray(X)
+    y = np.asarray(y)
+    X_test = np.asarray(X_test)
+    y_test = np.asarray(y_test)
+
+    # Determine the number of classes.
+    C = int(y.max()) + 1
+
+    # Create one random number generator for all sampling operations.
+    # This ensures reproducibility across training sizes and repetitions.
+    rng = np.random.default_rng(seed)
+
+    # Precompute the training indices belonging to each class.
+    # Classes are processed in ascending order.
+    class_indices = [
+        np.flatnonzero(y == c)
+        for c in range(C)
+    ]
+
+    # Store test accuracies for every training size and repetition.
+    accuracies = np.zeros((len(sizes), n_repeats), dtype=float)
+
+    # Evaluate the model for each requested training size.
+    for i, m in enumerate(sizes):
+
+        # Repeat the experiment using different random samples.
+        for r in range(n_repeats):
+
+            # Sample m observations from each class without replacement.
+            # Every class is processed in ascending order.
+            sampled_indices = [
+                rng.choice(class_indices[c], size=m, replace=False)
+                for c in range(C)
+            ]
+
+            # Concatenate the sampled class indices into one training set.
+            # The resulting training observations are grouped by class.
+            train_indices = np.concatenate(sampled_indices)
+
+            # Construct the sampled training dataset.
+            X_train = X[train_indices]
+            y_train = y[train_indices]
+
+            # Train the classifier and obtain test log-posterior probabilities.
+            log_post = fit_predict(X_train, y_train, X_test)
+
+            # Predict the class with the highest log-posterior probability.
+            predictions = np.argmax(log_post, axis=1)
+
+            # Calculate and record test accuracy for this repetition.
+            accuracies[i, r] = np.mean(predictions == y_test)
+
+    # Calculate the mean accuracy across repetitions for each training size.
+    mean = np.mean(accuracies, axis=1)
+
+    # Calculate the population standard deviation across repetitions.
+    std = np.std(accuracies, axis=1, ddof=0)
+
+    return mean, std
+

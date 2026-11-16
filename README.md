@@ -32,6 +32,7 @@ python scaffold.py
 - [x] **20.** nb_to_softmax
 - [x] **21.** fit_softmax_regression
 - [x] **22.** evaluate_posteriors
+- [x] **23.** learning_curve
 
 ---
 
