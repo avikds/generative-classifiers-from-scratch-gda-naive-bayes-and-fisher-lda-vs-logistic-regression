@@ -28,6 +28,7 @@ python scaffold.py
 - [x] **16.** quantize_pixels
 - [x] **17.** fit_categorical_nb
 - [x] **18.** nb_log_joint
+- [x] **19.** dummy_features
 
 ---
 

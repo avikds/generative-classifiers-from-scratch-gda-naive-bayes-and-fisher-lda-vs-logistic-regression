@@ -1128,3 +1128,47 @@ def nb_log_joint(params, Xk):
 
     return log_joint
 
+# Step 19 - dummy_features
+def dummy_features(Xk, K):
+    """
+    Encode categorical integer features as indicator (dummy) variables,
+    using level 0 as the reference category.
+
+    Parameters
+    ----------
+    Xk : ndarray, shape (N, D)
+        Integer categorical features ranging from 0 to K-1.
+        A value of -1 represents a missing feature.
+    K : int
+        Number of possible categorical levels.
+
+    Returns
+    -------
+    features : ndarray, shape (N, D * (K - 1))
+        Floating-point dummy feature matrix.
+
+        For each original feature, creates K-1 indicator columns
+        corresponding to categorical levels 1 through K-1.
+
+        Level 0 and missing values (-1) are represented by zeros.
+    """
+
+    # Convert the input features into a NumPy array.
+    Xk = np.asarray(Xk)
+
+    # Determine the number of observations and original features.
+    N, D = Xk.shape
+
+    # Create indicator variables for levels 1 through K-1.
+    # The resulting shape is (N, D, K-1).
+    # Level 0 and missing values (-1) automatically produce zeros.
+    indicators = (
+        Xk[:, :, None] == np.arange(1, K)
+    ).astype(float)
+
+    # Flatten the categorical indicator dimensions into one feature axis.
+    # Final shape: (N, D * (K-1)).
+    features = indicators.reshape(N, D * (K - 1))
+
+    return features
+
