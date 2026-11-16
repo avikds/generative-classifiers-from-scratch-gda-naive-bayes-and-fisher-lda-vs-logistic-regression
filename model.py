@@ -949,3 +949,40 @@ def fisher_criterion(W, X, y, C):
     # Return the result as a standard Python float.
     return float(criterion)
 
+# Step 16 - quantize_pixels
+def quantize_pixels(images, K):
+    """
+    Flatten 8-bit grayscale images and quantize their pixels
+    into K discrete intensity levels.
+
+    Parameters
+    ----------
+    images : ndarray, shape (N, H, W) or (N, D)
+        Input images with integer pixel values between 0 and 255.
+    K : int
+        Number of discrete gray levels (K >= 2).
+
+    Returns
+    -------
+    quantized : ndarray, shape (N, H*W) or (N, D)
+        Flattened and quantized pixel values with dtype int64.
+        Each pixel belongs to one of the levels 0, 1, ..., K-1.
+    """
+
+    # Convert the input images into a NumPy array.
+    images = np.asarray(images)
+
+    # Flatten every image into a one-dimensional feature vector.
+    # The first dimension represents the number of images.
+    pixels = images.reshape(images.shape[0], -1)
+
+    # Convert pixel values to int64 before multiplication
+    # to prevent integer overflow with uint8 input arrays.
+    pixels = pixels.astype(np.int64)
+
+    # Quantize each pixel into one of K discrete gray levels.
+    # The resulting values range from 0 to K-1.
+    quantized = (pixels * K) // 256
+
+    return quantized
+

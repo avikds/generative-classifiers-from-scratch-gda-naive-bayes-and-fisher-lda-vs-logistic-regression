@@ -25,6 +25,7 @@ python scaffold.py
 - [x] **13.** fisher_direction
 - [x] **14.** fisher_projection
 - [x] **15.** fisher_criterion
+- [x] **16.** quantize_pixels
 
 ---
 
