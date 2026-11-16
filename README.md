@@ -20,6 +20,7 @@ python scaffold.py
 - [x] **8.** lda_binary_threshold
 - [x] **9.** ncm_log_proba
 - [x] **10.** fit_ncm_metric
+- [x] **11.** pca_basis
 
 ---
 

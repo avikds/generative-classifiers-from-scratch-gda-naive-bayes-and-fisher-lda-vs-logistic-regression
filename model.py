@@ -652,3 +652,59 @@ def fit_ncm_metric(X, y, means, K, n_iter=100, lr=0.1, seed=0):
     # Return the learned metric and the recorded loss history.
     return W, losses
 
+# Step 11 - pca_basis
+def pca_basis(X, K):
+    """
+    Compute the top-K principal component directions of X.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Input dataset containing N observations and D features.
+    K : int
+        Number of principal components to retain.
+
+    Returns
+    -------
+    mean : ndarray, shape (D,)
+        Mean of each feature.
+    V : ndarray, shape (D, K)
+        Eigenvectors corresponding to the K largest eigenvalues,
+        ordered from largest to smallest, with orthonormal columns.
+    """
+
+    # Convert the input dataset to a floating-point NumPy array.
+    X = np.asarray(X, dtype=float)
+
+    # Compute the column-wise mean of the dataset.
+    mean = np.mean(X, axis=0)
+
+    # Center the observations by subtracting the feature means.
+    X_centered = X - mean
+
+    # Compute the covariance matrix using the maximum likelihood
+    # normalization factor 1/N.
+    covariance = (X_centered.T @ X_centered) / X.shape[0]
+
+    # Compute the eigenvalues and eigenvectors of the symmetric
+    # covariance matrix.
+    # np.linalg.eigh returns eigenvalues in ascending order.
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+
+    # Select the K eigenvectors corresponding to the largest
+    # eigenvalues, arranging them in descending order.
+    V = eigenvectors[:, ::-1][:, :K]
+
+    # Fix the sign ambiguity of eigenvectors.
+    # Ensure that the largest-magnitude entry in every column is positive.
+    for j in range(K):
+
+        # Find the index of the largest absolute entry in the current column.
+        max_idx = np.argmax(np.abs(V[:, j]))
+
+        # Flip the sign if the selected entry is negative.
+        if V[max_idx, j] < 0:
+            V[:, j] *= -1.0
+
+    return mean, V
+
