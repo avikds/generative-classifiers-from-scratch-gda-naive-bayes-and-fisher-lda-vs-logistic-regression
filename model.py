@@ -821,3 +821,80 @@ def fisher_direction(X, y):
 
     return w
 
+# Step 14 - fisher_projection
+def fisher_projection(X, y, C, K):
+    """
+    Compute the multi-class Fisher LDA projection matrix.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Input dataset containing N observations and D features.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+    K : int
+        Number of discriminant dimensions to retain.
+
+    Returns
+    -------
+    W : ndarray, shape (D, K)
+        Fisher LDA projection matrix with orthonormalized
+        within-class whitening directions.
+
+    Raises
+    ------
+    ValueError
+        If K exceeds C - 1.
+    """
+
+    # Fisher LDA can produce at most C - 1 discriminant directions.
+    if K > C - 1:
+        raise ValueError("K cannot exceed C - 1 for Fisher LDA.")
+
+    # Compute the within-class and between-class scatter matrices.
+    S_W, S_B = scatter_matrices(X, y, C)
+
+    # Eigendecompose the within-class scatter matrix.
+    # S_W = Q @ diag(e) @ Q.T
+    e, Q = np.linalg.eigh(S_W)
+
+    # Construct the inverse square root of S_W.
+    # S_W^(-1/2) = Q @ diag(e^(-1/2)) @ Q.T
+    S_W_inv_sqrt = (
+        Q @ np.diag(1.0 / np.sqrt(e)) @ Q.T
+    )
+
+    # Whiten the between-class scatter matrix.
+    # M = S_W^(-1/2) @ S_B @ S_W^(-1/2)
+    M = S_W_inv_sqrt @ S_B @ S_W_inv_sqrt
+
+    # Symmetrize M to eliminate small numerical asymmetries.
+    M = 0.5 * (M + M.T)
+
+    # Eigendecompose the whitened between-class scatter matrix.
+    # np.linalg.eigh returns eigenvalues in ascending order.
+    eigenvalues, U = np.linalg.eigh(M)
+
+    # Select the K eigenvectors corresponding to the largest
+    # eigenvalues, arranging them in descending order.
+    U = U[:, ::-1][:, :K]
+
+    # Transform the selected eigenvectors back into the
+    # original feature space.
+    W = S_W_inv_sqrt @ U
+
+    # Fix the sign ambiguity of each projection direction.
+    # Ensure the largest-magnitude entry in every column is positive.
+    for j in range(K):
+
+        # Find the index of the largest absolute entry.
+        max_idx = np.argmax(np.abs(W[:, j]))
+
+        # Flip the column if its largest-magnitude entry is negative.
+        if W[max_idx, j] < 0:
+            W[:, j] *= -1.0
+
+    return W
+

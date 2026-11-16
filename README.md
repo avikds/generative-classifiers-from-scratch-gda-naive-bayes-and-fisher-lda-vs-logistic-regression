@@ -23,6 +23,7 @@ python scaffold.py
 - [x] **11.** pca_basis
 - [x] **12.** scatter_matrices
 - [x] **13.** fisher_direction
+- [x] **14.** fisher_projection
 
 ---
 
