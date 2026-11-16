@@ -523,3 +523,46 @@ def lda_binary_threshold(params):
 
     return w, x0
 
+# Step 9 - ncm_log_proba
+def ncm_log_proba(X, means, W):
+    """
+    Compute normalized log-posterior probabilities using a
+    Nearest-Class-Mean classifier with a metric matrix W.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Input observations.
+    means : ndarray, shape (C, D)
+        Class mean vectors.
+    W : ndarray, shape (K, D)
+        Metric projection matrix.
+
+    Returns
+    -------
+    log_proba : ndarray, shape (N, C)
+        Normalized log-posterior probabilities for each observation
+        and each class.
+    """
+
+    # Calculate the difference between every observation
+    # and every class mean.
+    # Resulting shape: (N, C, D).
+    differences = X[:, None, :] - means[None, :, :]
+
+    # Project the differences into the metric space using W.
+    # Resulting shape: (N, C, K).
+    projected = differences @ W.T
+
+    # Calculate the squared Euclidean norm of each projected difference.
+    # Resulting shape: (N, C).
+    squared_distances = np.sum(projected ** 2, axis=-1)
+
+    # Convert squared distances into unnormalized log scores.
+    # Smaller distances produce higher log scores.
+    log_scores = -0.5 * squared_distances
+
+    # Normalize the log scores across classes using the
+    # numerically stable log-sum-exp implementation.
+    return log_normalize(log_scores)
+

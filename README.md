@@ -18,6 +18,7 @@ python scaffold.py
 - [x] **6.** constrain_covariances
 - [x] **7.** lda_softmax_params
 - [x] **8.** lda_binary_threshold
+- [x] **9.** ncm_log_proba
 
 ---
 
