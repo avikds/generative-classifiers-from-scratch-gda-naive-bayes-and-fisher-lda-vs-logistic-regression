@@ -1218,3 +1218,106 @@ def nb_to_softmax(params):
 
     return B, gamma
 
+# Step 21 - fit_softmax_regression
+def fit_softmax_regression(F, y, C, lam=1e-4, n_iter=200, lr=0.5, momentum=0.9):
+    """
+    Fit a multinomial logistic regression model using gradient descent
+    with heavy-ball momentum and L2 regularization.
+
+    Parameters
+    ----------
+    F : ndarray, shape (N, D)
+        Input feature matrix containing N observations and D features.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+    lam : float, default=1e-4
+        L2 regularization strength applied to the weight matrix.
+    n_iter : int, default=200
+        Number of gradient descent iterations.
+    lr : float, default=0.5
+        Learning rate.
+    momentum : float, default=0.9
+        Heavy-ball momentum coefficient.
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - 'W': Weight matrix, shape (C, D).
+        - 'b': Bias vector, shape (C,).
+        - 'loss': Negative log-likelihood history, shape (n_iter,).
+    """
+
+    # Convert inputs into floating-point feature values and integer labels.
+    F = np.asarray(F, dtype=float)
+    y = np.asarray(y, dtype=int)
+
+    # Determine the number of observations and features.
+    N, D = F.shape
+
+    # Initialize the model weights and biases to zero.
+    W = np.zeros((C, D), dtype=float)
+    b = np.zeros(C, dtype=float)
+
+    # Initialize the heavy-ball momentum terms.
+    velocity_W = np.zeros_like(W)
+    velocity_b = np.zeros_like(b)
+
+    # Create one-hot encoded class labels.
+    # Shape: (N, C).
+    onehot = np.eye(C)[y]
+
+    # Store the regularized negative log-likelihood at each iteration.
+    losses = np.zeros(n_iter, dtype=float)
+
+    # Perform gradient descent with heavy-ball momentum.
+    for i in range(n_iter):
+
+        # Compute the linear class scores.
+        # Shape: (N, C).
+        scores = F @ W.T + b
+
+        # Convert unnormalized scores into normalized log probabilities.
+        # Reuse the numerically stable log_normalize() from Step 4.
+        logp = log_normalize(scores)
+
+        # Compute the mean negative log-likelihood.
+        # Only the weights are regularized; the biases are not.
+        nll = -np.mean(logp[np.arange(N), y])
+        regularization = (lam / 2.0) * np.sum(W ** 2)
+
+        # Record the total objective before updating the parameters.
+        losses[i] = nll + regularization
+
+        # Calculate the difference between predicted probabilities
+        # and the one-hot encoded true class labels.
+        # Shape: (N, C).
+        G = (np.exp(logp) - onehot) / N
+
+        # Calculate the gradient with respect to the weight matrix.
+        # Include the L2 regularization gradient.
+        # Shape: (C, D).
+        gW = G.T @ F + lam * W
+
+        # Calculate the gradient with respect to the bias vector.
+        # Bias terms are not regularized.
+        # Shape: (C,).
+        gb = np.sum(G, axis=0)
+
+        # Update the heavy-ball momentum terms.
+        velocity_W = momentum * velocity_W + gW
+        velocity_b = momentum * velocity_b + gb
+
+        # Update the model parameters using the accumulated gradients.
+        W -= lr * velocity_W
+        b -= lr * velocity_b
+
+    # Return the learned parameters and loss history.
+    return {
+        "W": W,
+        "b": b,
+        "loss": losses
+    }
+

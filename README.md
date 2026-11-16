@@ -30,6 +30,7 @@ python scaffold.py
 - [x] **18.** nb_log_joint
 - [x] **19.** dummy_features
 - [x] **20.** nb_to_softmax
+- [x] **21.** fit_softmax_regression
 
 ---
 
