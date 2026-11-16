@@ -398,3 +398,58 @@ def constrain_covariances(params, kind="full", lam=0.0):
         "Sigma": Sigma
     }
 
+# Step 7 - lda_softmax_params
+def lda_softmax_params(params):
+    """
+    Convert a tied-covariance GDA model into multinomial
+    logistic regression weights and biases.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted GDA parameters containing:
+        - 'pi': Class prior probabilities, shape (C,).
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+
+    Returns
+    -------
+    B : ndarray, shape (C, D)
+        Weight matrix for the equivalent softmax classifier.
+
+    gamma : ndarray, shape (C,)
+        Bias vector for the equivalent softmax classifier.
+
+    Raises
+    ------
+    ValueError
+        If the class covariance matrices are not tied.
+    """
+
+    # Extract the class priors, means, and covariance matrices.
+    pi = np.asarray(params["pi"], dtype=float)
+    mu = np.asarray(params["mu"], dtype=float)
+    Sigma = np.asarray(params["Sigma"], dtype=float)
+
+    # Verify that all classes share the same covariance matrix.
+    # Tied covariance is required for the quadratic terms to cancel.
+    if not np.allclose(Sigma, Sigma[0]):
+        raise ValueError("Class covariance matrices must be tied.")
+
+    # Obtain the shared covariance matrix.
+    shared_Sigma = Sigma[0]
+
+    # Calculate the class-specific weight vectors.
+    # Solve Sigma @ B.T = mu.T instead of explicitly computing
+    # the inverse of the covariance matrix.
+    B = np.linalg.solve(shared_Sigma, mu.T).T
+
+    # Calculate the class-specific bias terms.
+    # gamma_c = log(pi_c) - 0.5 * mu_c.T @ Sigma^(-1) @ mu_c
+    gamma = (
+        np.log(pi)
+        - 0.5 * np.sum(mu * B, axis=1)
+    )
+
+    return B, gamma
+
