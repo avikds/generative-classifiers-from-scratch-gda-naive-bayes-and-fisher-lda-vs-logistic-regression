@@ -26,6 +26,7 @@ python scaffold.py
 - [x] **14.** fisher_projection
 - [x] **15.** fisher_criterion
 - [x] **16.** quantize_pixels
+- [x] **17.** fit_categorical_nb
 
 ---
 

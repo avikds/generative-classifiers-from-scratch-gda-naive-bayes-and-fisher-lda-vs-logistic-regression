@@ -986,3 +986,90 @@ def quantize_pixels(images, K):
 
     return quantized
 
+# Step 17 - fit_categorical_nb
+def fit_categorical_nb(Xk, y, C, K, alpha=1.0, beta=1.0):
+    """
+    Fit a categorical Naive Bayes classifier using frequency
+    counting with Dirichlet pseudo-count smoothing.
+
+    Parameters
+    ----------
+    Xk : ndarray, shape (N, D)
+        Integer-valued categorical features ranging from 0 to K-1.
+        A value of -1 represents a missing feature.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+    K : int
+        Number of possible categorical feature values.
+    alpha : float, default=1.0
+        Dirichlet pseudo-count for class prior probabilities.
+    beta : float, default=1.0
+        Dirichlet pseudo-count for feature conditional probabilities.
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - 'log_theta': Log conditional probabilities,
+          shape (C, D, K).
+        - 'log_pi': Log class prior probabilities,
+          shape (C,).
+    """
+
+    # Convert inputs into NumPy arrays.
+    Xk = np.asarray(Xk, dtype=int)
+    y = np.asarray(y, dtype=int)
+
+    # Determine the number of observations and features.
+    N, D = Xk.shape
+
+    # Create one-hot encoded class labels.
+    # Shape: (N, C).
+    onehot = np.eye(C, dtype=float)[y]
+
+    # Initialize the categorical feature count tensor.
+    # Shape: (C, D, K).
+    counts = np.zeros((C, D, K), dtype=float)
+
+    # Count occurrences of every categorical level.
+    # Missing values (-1) are automatically excluded because
+    # they do not match any of the valid levels 0, ..., K-1.
+    for k in range(K):
+
+        # Identify observations whose feature values equal k.
+        feature_mask = (Xk == k).astype(float)
+
+        # Aggregate feature counts independently for every class.
+        # One matrix multiplication per categorical level.
+        counts[:, :, k] = onehot.T @ feature_mask
+
+    # Calculate the conditional probability denominators.
+    # Each feature is normalized using its observed counts
+    # plus K Dirichlet pseudo-counts.
+    feature_totals = (
+        counts.sum(axis=2, keepdims=True) + K * beta
+    )
+
+    # Apply Dirichlet smoothing to obtain conditional probabilities.
+    theta = (counts + beta) / feature_totals
+
+    # Convert conditional probabilities into log probabilities.
+    log_theta = np.log(theta)
+
+    # Count the number of observations belonging to each class.
+    N_c = onehot.sum(axis=0)
+
+    # Estimate the class prior probabilities using Dirichlet smoothing.
+    pi = (N_c + alpha) / (N + C * alpha)
+
+    # Convert class prior probabilities into log probabilities.
+    log_pi = np.log(pi)
+
+    # Return the fitted categorical Naive Bayes parameters.
+    return {
+        "log_theta": log_theta,
+        "log_pi": log_pi
+    }
+
