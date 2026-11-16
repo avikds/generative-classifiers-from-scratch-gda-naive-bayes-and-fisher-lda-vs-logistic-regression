@@ -11,6 +11,7 @@ python scaffold.py
 ## Steps
 
 - [x] **1.** mvn_logpdf
+- [x] **2.** fit_gda
 
 ---
 

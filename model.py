@@ -70,3 +70,72 @@ def mvn_logpdf(X, mu, Sigma):
 
     return np.asarray(log_pdf, dtype=float)
 
+# Step 2 - fit_gda
+def fit_gda(X, y, C):
+    """
+    Fit a Gaussian Discriminant Analysis (GDA) model using
+    Maximum Likelihood Estimation (MLE).
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Training data containing N observations and D features.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+
+    Returns
+    -------
+    dict
+        A dictionary containing:
+        - 'pi': Class prior probabilities, shape (C,).
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+    """
+
+    # Convert inputs to NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y)
+
+    # Determine the number of observations and features.
+    N, D = X.shape
+
+    # Initialize arrays for class priors, means, and covariances.
+    pi = np.zeros(C)
+    mu = np.zeros((C, D))
+    Sigma = np.zeros((C, D, D))
+
+    # Estimate the Gaussian parameters independently for each class.
+    for c in range(C):
+
+        # Select all observations belonging to class c.
+        X_c = X[y == c]
+
+        # Count the number of observations in the current class.
+        N_c = X_c.shape[0]
+
+        # Every class must contain at least one observation.
+        if N_c == 0:
+            raise ValueError(f"Class {c} has no training examples.")
+
+        # Estimate the class prior probability using MLE.
+        pi[c] = N_c / N
+
+        # Estimate the class mean vector.
+        mu[c] = np.mean(X_c, axis=0)
+
+        # Center the observations around their class mean.
+        centered_X = X_c - mu[c]
+
+        # Estimate the class covariance matrix using MLE.
+        # Divide by N_c rather than N_c - 1.
+        Sigma[c] = (centered_X.T @ centered_X) / N_c
+
+    # Return all estimated Gaussian parameters.
+    return {
+        "pi": pi,
+        "mu": mu,
+        "Sigma": Sigma
+    }
+
