@@ -139,3 +139,50 @@ def fit_gda(X, y, C):
         "Sigma": Sigma
     }
 
+# Step 3 - gda_log_joint
+def gda_log_joint(params, X):
+    """
+    Evaluate the GDA discriminant function for every observation
+    and every class.
+
+    Parameters
+    ----------
+    params : dict
+        Dictionary containing:
+        - 'pi': Class prior probabilities, shape (C,).
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+
+    X : ndarray, shape (N, D)
+        Input observations.
+
+    Returns
+    -------
+    log_joint : ndarray, shape (N, C)
+        Unnormalized log-posterior scores for each observation
+        and each class.
+    """
+
+    # Extract the Gaussian parameters from the fitted GDA model.
+    pi = params["pi"]
+    mu = params["mu"]
+    Sigma = params["Sigma"]
+
+    # Determine the number of classes.
+    C = len(pi)
+
+    # Initialize the output matrix for log-joint probabilities.
+    N = X.shape[0] if X.ndim > 1 else 1
+    log_joint = np.zeros((N, C))
+
+    # Calculate the log-joint probability for each class.
+    for c in range(C):
+
+        # Combine the log class prior with the Gaussian log-density.
+        log_joint[:, c] = (
+            np.log(pi[c])
+            + mvn_logpdf(X, mu[c], Sigma[c])
+        )
+
+    return log_joint
+
