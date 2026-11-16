@@ -186,3 +186,42 @@ def gda_log_joint(params, X):
 
     return log_joint
 
+# Step 4 - log_normalize
+def log_normalize(L):
+    """
+    Convert unnormalized log scores into normalized log probabilities
+    using the numerically stable Log-Sum-Exp trick.
+
+    Parameters
+    ----------
+    L : ndarray, shape (N, C)
+        Unnormalized log scores for N observations across C classes.
+
+    Returns
+    -------
+    log_probs : ndarray, shape (N, C)
+        Normalized log probabilities, where the probabilities
+        in each row sum to 1 after exponentiation.
+    """
+
+    # Convert input to a floating-point NumPy array.
+    L = np.asarray(L, dtype=float)
+
+    # Find the maximum log score in each row.
+    # keepdims=True preserves the shape for broadcasting.
+    row_max = np.max(L, axis=1, keepdims=True)
+
+    # Subtract the row maximum before exponentiation
+    # to prevent numerical overflow.
+    shifted_L = L - row_max
+
+    # Calculate the log-sum-exp for each row.
+    log_sum_exp = row_max + np.log(
+        np.sum(np.exp(shifted_L), axis=1, keepdims=True)
+    )
+
+    # Subtract the log-sum-exp to obtain normalized log probabilities.
+    log_probs = L - log_sum_exp
+
+    return log_probs
+

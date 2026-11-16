@@ -13,6 +13,7 @@ python scaffold.py
 - [x] **1.** mvn_logpdf
 - [x] **2.** fit_gda
 - [x] **3.** gda_log_joint
+- [x] **4.** log_normalize
 
 ---
 
