@@ -778,3 +778,46 @@ def scatter_matrices(X, y, C):
     # Return both scatter matrices.
     return S_W, S_B
 
+# Step 13 - fisher_direction
+def fisher_direction(X, y):
+    """
+    Compute Fisher's optimal one-dimensional projection
+    direction for a two-class classification problem.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, D)
+        Input dataset containing N observations and D features.
+    y : ndarray, shape (N,)
+        Binary class labels containing 0 and 1.
+
+    Returns
+    -------
+    w : ndarray, shape (D,)
+        Unit-length Fisher discriminant direction.
+    """
+
+    # Convert inputs to NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y)
+
+    # Compute the within-class scatter matrix.
+    # The between-class scatter matrix is not needed here.
+    S_W, _ = scatter_matrices(X, y, 2)
+
+    # Calculate the mean vector of each class.
+    mu_0 = np.mean(X[y == 0], axis=0)
+    mu_1 = np.mean(X[y == 1], axis=0)
+
+    # Calculate the difference between the two class means.
+    mean_diff = mu_1 - mu_0
+
+    # Solve the linear system instead of explicitly
+    # calculating the inverse of the within-class scatter matrix.
+    w = np.linalg.solve(S_W, mean_diff)
+
+    # Normalize the discriminant direction to unit length.
+    w = w / np.linalg.norm(w)
+
+    return w
+
