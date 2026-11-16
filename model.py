@@ -898,3 +898,54 @@ def fisher_projection(X, y, C, K):
 
     return W
 
+# Step 15 - fisher_criterion
+def fisher_criterion(W, X, y, C):
+    """
+    Evaluate a linear projection using Fisher's determinant criterion.
+
+    Parameters
+    ----------
+    W : ndarray, shape (D, K) or (D,)
+        Projection matrix. A one-dimensional vector is treated
+        as a single projection direction of shape (D, 1).
+    X : ndarray, shape (N, D)
+        Input dataset containing N observations and D features.
+    y : ndarray, shape (N,)
+        Integer class labels ranging from 0 to C-1.
+    C : int
+        Number of classes.
+
+    Returns
+    -------
+    criterion : float
+        Fisher's determinant criterion, calculated as the ratio
+        of the determinant of projected between-class scatter
+        to the determinant of projected within-class scatter.
+    """
+
+    # Convert the projection matrix into a floating-point NumPy array.
+    W = np.asarray(W, dtype=float)
+
+    # Treat a one-dimensional projection vector as a single-column matrix.
+    if W.ndim == 1:
+        W = W.reshape(-1, 1)
+
+    # Compute the within-class and between-class scatter matrices.
+    S_W, S_B = scatter_matrices(X, y, C)
+
+    # Project the between-class scatter matrix into the reduced space.
+    projected_S_B = W.T @ S_B @ W
+
+    # Project the within-class scatter matrix into the reduced space.
+    projected_S_W = W.T @ S_W @ W
+
+    # Calculate the determinants of the projected scatter matrices.
+    det_SB = np.linalg.det(projected_S_B)
+    det_SW = np.linalg.det(projected_S_W)
+
+    # Compute Fisher's determinant criterion.
+    criterion = det_SB / det_SW
+
+    # Return the result as a standard Python float.
+    return float(criterion)
+
