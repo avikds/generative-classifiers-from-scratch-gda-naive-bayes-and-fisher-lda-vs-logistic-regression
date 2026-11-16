@@ -14,6 +14,7 @@ python scaffold.py
 - [x] **2.** fit_gda
 - [x] **3.** gda_log_joint
 - [x] **4.** log_normalize
+- [x] **5.** sample_gda
 
 ---
 

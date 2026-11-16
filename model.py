@@ -225,3 +225,71 @@ def log_normalize(L):
 
     return log_probs
 
+# Step 5 - sample_gda
+def sample_gda(params, n_per_class, rng):
+    """
+    Generate labeled synthetic examples from a fitted GDA model.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted GDA parameters containing:
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+
+    n_per_class : int
+        Number of synthetic observations to generate for each class.
+
+    rng : np.random.Generator
+        NumPy random number generator used for reproducible sampling.
+
+    Returns
+    -------
+    X : ndarray, shape (C * n_per_class, D)
+        Generated observations, grouped by class.
+
+    y : ndarray, shape (C * n_per_class,)
+        Integer class labels corresponding to the generated observations.
+    """
+
+    # Extract the class means and covariance matrices.
+    mu = params["mu"]
+    Sigma = params["Sigma"]
+
+    # Determine the number of classes and features.
+    C, D = mu.shape
+
+    # Store generated observations and labels for each class.
+    X_samples = []
+    y_samples = []
+
+    # Generate samples class by class in ascending class order.
+    for c in range(C):
+
+        # Compute the Cholesky factor of the class covariance matrix.
+        # Sigma[c] = L @ L.T
+        L = np.linalg.cholesky(Sigma[c])
+
+        # Generate standard normally distributed random observations.
+        # Each row represents one observation with D independent features.
+        Z = rng.standard_normal((n_per_class, D))
+
+        # Transform standard normal samples into the desired Gaussian.
+        # The resulting covariance matrix is L @ L.T = Sigma[c].
+        X_c = mu[c] + Z @ L.T
+
+        # Assign the current class label to every generated observation.
+        y_c = np.full(n_per_class, c, dtype=int)
+
+        # Store the generated observations and their corresponding labels.
+        X_samples.append(X_c)
+        y_samples.append(y_c)
+
+    # Combine all class-specific observations into a single dataset.
+    X = np.vstack(X_samples)
+
+    # Combine all class labels into a single integer array.
+    y = np.concatenate(y_samples)
+
+    return X, y
+
