@@ -33,6 +33,7 @@ python scaffold.py
 - [x] **21.** fit_softmax_regression
 - [x] **22.** evaluate_posteriors
 - [x] **23.** learning_curve
+- [x] **24.** gda_log_joint_missing
 
 ---
 

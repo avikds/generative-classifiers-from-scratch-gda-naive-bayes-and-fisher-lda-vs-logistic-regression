@@ -1509,3 +1509,95 @@ def learning_curve(fit_predict, X, y, X_test, y_test, sizes, n_repeats=3, seed=0
 
     return mean, std
 
+# Step 24 - gda_log_joint_missing
+def gda_log_joint_missing(params, X):
+    """
+    Evaluate GDA log-joint probabilities with missing features
+    marginalized out.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted GDA parameters containing:
+        - 'pi': Class prior probabilities, shape (C,).
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+
+    X : ndarray, shape (N, D)
+        Input observations. Missing features are represented by np.nan.
+
+    Returns
+    -------
+    log_joint : ndarray, shape (N, C)
+        Unnormalized log-joint probabilities for each observation
+        and class, using only the observed features.
+    """
+
+    # Convert the input observations to a floating-point NumPy array.
+    X = np.asarray(X, dtype=float)
+
+    # Extract the fitted GDA parameters.
+    pi = params["pi"]
+    mu = params["mu"]
+    Sigma = params["Sigma"]
+
+    # Determine the number of observations, features, and classes.
+    N, D = X.shape
+    C = len(pi)
+
+    # Initialize each observation's log-joint scores
+    # using the corresponding class log prior.
+    log_joint = np.broadcast_to(
+        np.log(pi),
+        (N, C)
+    ).copy()
+
+    # Identify observed features (True = observed, False = missing).
+    observed_mask = ~np.isnan(X)
+
+    # Group observations that share the same missingness pattern.
+    # inverse identifies the pattern assigned to each observation.
+    patterns, inverse = np.unique(
+        observed_mask,
+        axis=0,
+        return_inverse=True
+    )
+
+    # Process each unique missingness pattern only once.
+    for pattern_idx, pattern in enumerate(patterns):
+
+        # Find all observations belonging to the current pattern.
+        rows = np.flatnonzero(inverse == pattern_idx)
+
+        # Identify the indices of observed features.
+        observed_features = np.flatnonzero(pattern)
+
+        # If every feature is missing, only the class prior contributes.
+        if observed_features.size == 0:
+            continue
+
+        # Extract the observed values for all rows in this group.
+        X_observed = X[np.ix_(rows, observed_features)]
+
+        # Calculate the marginal Gaussian log-density for each class.
+        for c in range(C):
+
+            # Select the corresponding entries of the class mean.
+            mu_observed = mu[c, observed_features]
+
+            # Extract the covariance submatrix corresponding
+            # only to the observed features.
+            Sigma_observed = Sigma[c][
+                np.ix_(observed_features, observed_features)
+            ]
+
+            # Add the marginal Gaussian log-density to the
+            # existing class log-prior scores.
+            log_joint[rows, c] += mvn_logpdf(
+                X_observed,
+                mu_observed,
+                Sigma_observed
+            )
+
+    return log_joint
+
