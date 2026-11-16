@@ -293,3 +293,108 @@ def sample_gda(params, n_per_class, rng):
 
     return X, y
 
+# Step 6 - constrain_covariances
+def constrain_covariances(params, kind="full", lam=0.0):
+    """
+    Replace the class covariance matrices of a fitted GDA model
+    with tied, diagonal, or regularized covariance estimates.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted GDA parameters containing:
+        - 'pi': Class prior probabilities, shape (C,).
+        - 'mu': Class mean vectors, shape (C, D).
+        - 'Sigma': Class covariance matrices, shape (C, D, D).
+
+    kind : str, default="full"
+        Covariance estimation strategy:
+        - "full": Retain individual full covariance matrices.
+        - "tied": Use a shared pooled covariance matrix.
+        - "diag": Retain only diagonal covariance elements.
+        - "tied_diag": Use a shared pooled diagonal covariance matrix.
+
+    lam : float, default=0.0
+        Regularization parameter between 0 and 1.
+        Controls the amount of diagonal regularization.
+
+    Returns
+    -------
+    dict
+        A new dictionary containing copies of:
+        - 'pi': Class prior probabilities.
+        - 'mu': Class mean vectors.
+        - 'Sigma': Updated covariance matrices.
+    """
+
+    # Validate the covariance estimation strategy.
+    valid_kinds = {"full", "tied", "diag", "tied_diag"}
+
+    if kind not in valid_kinds:
+        raise ValueError(f"Unknown covariance kind: {kind}")
+
+    # Validate the regularization parameter.
+    if not np.isscalar(lam):
+        raise ValueError("lam must be a scalar between 0 and 1.")
+
+    try:
+        lam = float(lam)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("lam must be a scalar between 0 and 1.")
+
+    if not np.isfinite(lam) or not 0.0 <= lam <= 1.0:
+        raise ValueError("lam must be between 0 and 1.")
+
+    # Create independent copies of the original model parameters.
+    pi = np.array(params["pi"], copy=True)
+    mu = np.array(params["mu"], copy=True)
+    Sigma = np.array(params["Sigma"], dtype=float, copy=True)
+
+    # Determine the number of classes and feature dimensions.
+    C, D, _ = Sigma.shape
+
+    # Apply covariance pooling for tied covariance strategies.
+    if kind in {"tied", "tied_diag"}:
+
+        # Compute the prior-weighted pooled covariance matrix.
+        # The MLE class priors make this equivalent to the
+        # maximum-likelihood tied covariance estimator.
+        pooled_cov = np.sum(
+            pi[:, None, None] * Sigma,
+            axis=0
+        )
+
+        # Assign the same pooled covariance to every class.
+        Sigma = np.repeat(
+            pooled_cov[np.newaxis, :, :],
+            C,
+            axis=0
+        )
+
+    # Apply diagonal covariance constraints where required.
+    if kind in {"diag", "tied_diag"}:
+
+        # Retain only the diagonal elements of each covariance matrix.
+        for c in range(C):
+            Sigma[c] = np.diag(np.diag(Sigma[c]))
+
+    # Apply regularized discriminant analysis to every class.
+    # Sigma <- lam * diag(Sigma) + (1 - lam) * Sigma
+    for c in range(C):
+
+        # Extract the diagonal component of the current covariance.
+        diagonal_cov = np.diag(np.diag(Sigma[c]))
+
+        # Blend the diagonal and full covariance estimates.
+        Sigma[c] = (
+            lam * diagonal_cov
+            + (1.0 - lam) * Sigma[c]
+        )
+
+    # Return a new dictionary without modifying the input parameters.
+    return {
+        "pi": pi,
+        "mu": mu,
+        "Sigma": Sigma
+    }
+

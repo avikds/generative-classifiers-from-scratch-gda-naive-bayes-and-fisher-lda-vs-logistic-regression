@@ -15,6 +15,7 @@ python scaffold.py
 - [x] **3.** gda_log_joint
 - [x] **4.** log_normalize
 - [x] **5.** sample_gda
+- [x] **6.** constrain_covariances
 
 ---
 
