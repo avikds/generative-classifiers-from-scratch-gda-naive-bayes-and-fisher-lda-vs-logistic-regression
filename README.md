@@ -29,6 +29,7 @@ python scaffold.py
 - [x] **17.** fit_categorical_nb
 - [x] **18.** nb_log_joint
 - [x] **19.** dummy_features
+- [x] **20.** nb_to_softmax
 
 ---
 

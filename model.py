@@ -1172,3 +1172,49 @@ def dummy_features(Xk, K):
 
     return features
 
+# Step 20 - nb_to_softmax
+def nb_to_softmax(params):
+    """
+    Convert a fitted categorical Naive Bayes model into the
+    weights and biases of an equivalent multinomial softmax classifier.
+
+    Parameters
+    ----------
+    params : dict
+        Fitted categorical Naive Bayes parameters containing:
+        - 'log_theta': Log conditional probabilities, shape (C, D, K).
+        - 'log_pi': Log class prior probabilities, shape (C,).
+
+    Returns
+    -------
+    B : ndarray, shape (C, D * (K - 1))
+        Softmax weight matrix. Each feature weight is the log
+        probability ratio relative to categorical level 0.
+
+    gamma : ndarray, shape (C,)
+        Softmax bias vector incorporating class priors and
+        the baseline conditional probabilities.
+    """
+
+    # Extract the log conditional probabilities and class priors.
+    log_theta = np.asarray(params["log_theta"], dtype=float)
+    log_pi = np.asarray(params["log_pi"], dtype=float)
+
+    # Determine the number of classes, features, and categorical levels.
+    C, D, K = log_theta.shape
+
+    # Calculate the softmax weights using level 0 as the reference.
+    # B[c, d*(K-1) + (k-1)] = log_theta[c, d, k] - log_theta[c, d, 0]
+    #
+    # The resulting shape before flattening is (C, D, K-1).
+    B = (
+        log_theta[:, :, 1:]
+        - log_theta[:, :, 0:1]
+    ).reshape(C, D * (K - 1))
+
+    # Calculate the softmax bias for each class.
+    # gamma_c = log_pi_c + sum_d log_theta[c, d, 0]
+    gamma = log_pi + np.sum(log_theta[:, :, 0], axis=1)
+
+    return B, gamma
+
