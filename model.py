@@ -1321,3 +1321,94 @@ def fit_softmax_regression(F, y, C, lam=1e-4, n_iter=200, lr=0.5, momentum=0.9):
         "loss": losses
     }
 
+# Step 22 - evaluate_posteriors
+def evaluate_posteriors(log_post, y, n_bins=10):
+    """
+    Evaluate normalized log-posterior probabilities using
+    accuracy, negative log-likelihood, and expected calibration error.
+
+    Parameters
+    ----------
+    log_post : ndarray, shape (N, C)
+        Normalized log-posterior probabilities for N observations
+        across C classes.
+    y : ndarray, shape (N,)
+        True integer class labels ranging from 0 to C-1.
+    n_bins : int, default=10
+        Number of equal-width confidence bins used for ECE.
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - 'accuracy': Fraction of correctly classified observations.
+        - 'nll': Mean negative log-likelihood of the true classes.
+        - 'ece': Expected calibration error.
+    """
+
+    # Convert inputs to NumPy arrays.
+    log_post = np.asarray(log_post, dtype=float)
+    y = np.asarray(y, dtype=int)
+
+    # Determine the number of observations.
+    N = len(y)
+
+    # Obtain predicted classes using the highest log-posterior score.
+    predictions = np.argmax(log_post, axis=1)
+
+    # Calculate classification accuracy.
+    accuracy = np.mean(predictions == y)
+
+    # Calculate the mean negative log-likelihood of the true classes.
+    nll = -np.mean(log_post[np.arange(N), y])
+
+    # Convert log-posterior probabilities into ordinary probabilities.
+    probabilities = np.exp(log_post)
+
+    # Calculate the confidence of each prediction.
+    # Confidence is the maximum predicted class probability.
+    confidence = np.max(probabilities, axis=1)
+
+    # Determine whether each prediction is correct.
+    correct = (predictions == y).astype(float)
+
+    # Assign each observation to an equal-width confidence bin.
+    # The minimum operation ensures confidence == 1.0
+    # is assigned to the final bin.
+    bin_indices = np.minimum(
+        (confidence * n_bins).astype(int),
+        n_bins - 1
+    )
+
+    # Initialize the expected calibration error.
+    ece = 0.0
+
+    # Calculate the contribution of every non-empty confidence bin.
+    for b in range(n_bins):
+
+        # Identify observations belonging to the current bin.
+        mask = (bin_indices == b)
+
+        # Skip empty bins because they contribute nothing to ECE.
+        if not np.any(mask):
+            continue
+
+        # Calculate the average classification accuracy in this bin.
+        bin_accuracy = np.mean(correct[mask])
+
+        # Calculate the average prediction confidence in this bin.
+        bin_confidence = np.mean(confidence[mask])
+
+        # Weight the absolute calibration gap by the fraction
+        # of observations belonging to this bin.
+        bin_weight = np.sum(mask) / N
+
+        ece += bin_weight * abs(bin_accuracy - bin_confidence)
+
+    # Return all evaluation metrics as standard Python floats.
+    return {
+        "accuracy": float(accuracy),
+        "nll": float(nll),
+        "ece": float(ece)
+    }
+
